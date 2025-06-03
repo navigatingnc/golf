@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Calendar, Users, Trophy, Target } from 'lucide-react'; // Removed unused icons, Plus is in Rounds
+import { Calendar, Users, Trophy, Target, Clock } from 'lucide-react'; // Removed unused icons, Plus is in Rounds
 
 // Import Components
 import Dashboard from './components/Dashboard.js';
