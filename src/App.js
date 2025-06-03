@@ -1,5 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { Calendar, Users, Trophy, Target, Plus, Edit2, Trash2, Clock, MapPin, Star } from 'lucide-react';
+import { Calendar, Users, Trophy, Target } from 'lucide-react'; // Removed unused icons, Plus is in Rounds
+
+// Import Components
+import Dashboard from './components/Dashboard.js';
+import Scorecard from './components/Scorecard.js';
+import Members from './components/Members.js';
+import Rounds from './components/Rounds.js';
+import Leaderboard from './components/Leaderboard.js';
 
 const GolfApp = () => {
   const [activeTab, setActiveTab] = useState('dashboard');
@@ -27,7 +34,7 @@ const GolfApp = () => {
     date: '',
     time: '',
     score: '',
-    notes: ''
+    notes: '' // notes was in the original newRound state, keeping it
   });
 
   const [activeScorecard, setActiveScorecard] = useState(null);
@@ -67,6 +74,8 @@ const GolfApp = () => {
     setHoleScores(Array(18).fill(''));
   };
 
+  const exitScorecard = () => setActiveScorecard(null);
+
   const updateHoleScore = (holeIndex, score) => {
     const newScores = [...holeScores];
     newScores[holeIndex] = score;
@@ -88,64 +97,31 @@ const GolfApp = () => {
   const upcomingRounds = rounds.filter(r => r.status === 'scheduled').slice(0, 3);
   const recentRounds = rounds.filter(r => r.status === 'completed').slice(-3);
 
+  // Prepare data for Scorecard component
+  let activeScorecardData = null;
   if (activeScorecard) {
-    const round = rounds.find(r => r.id === activeScorecard);
-    const course = courses.find(c => c.id === round.courseId);
-    
+    const roundDetails = rounds.find(r => r.id === activeScorecard);
+    // Ensure roundDetails is found before trying to access its courseId
+    if (roundDetails) {
+      const courseDetails = courses.find(c => c.id === roundDetails.courseId);
+      activeScorecardData = { round: roundDetails, course: courseDetails };
+    }
+  }
+
+  // If activeScorecard is set and we have the data, render Scorecard component
+  if (activeScorecard && activeScorecardData) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-green-50 to-blue-50 p-4">
-        <div className="max-w-4xl mx-auto">
-          <div className="bg-white rounded-lg shadow-lg p-6">
-            <div className="flex items-center justify-between mb-6">
-              <div>
-                <h2 className="text-2xl font-bold text-gray-800">Live Scorecard</h2>
-                <p className="text-gray-600">{course.name} - Par {course.par}</p>
-              </div>
-              <button 
-                onClick={() => setActiveScorecard(null)}
-                className="px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600"
-              >
-                Exit
-              </button>
-            </div>
-            
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-6">
-              {Array.from({length: 18}, (_, i) => (
-                <div key={i} className="bg-green-50 p-4 rounded-lg border">
-                  <div className="text-center">
-                    <div className="text-sm font-semibold text-gray-600">Hole {i + 1}</div>
-                    <div className="text-xs text-gray-500 mb-2">Par {3 + (i % 3)}</div>
-                    <input
-                      type="number"
-                      min="1"
-                      max="12"
-                      value={holeScores[i]}
-                      onChange={(e) => updateHoleScore(i, e.target.value)}
-                      className="w-full text-center text-lg font-bold border-2 border-green-200 rounded focus:border-green-500 focus:outline-none"
-                      placeholder="-"
-                    />
-                  </div>
-                </div>
-              ))}
-            </div>
-            
-            <div className="flex items-center justify-between bg-gray-50 p-4 rounded-lg">
-              <div className="text-lg font-semibold">
-                Total Score: {holeScores.reduce((sum, score) => sum + (parseInt(score) || 0), 0)}
-              </div>
-              <button 
-                onClick={saveScorecard}
-                className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 font-semibold"
-              >
-                Save Round
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
+      <Scorecard
+        activeScorecardData={activeScorecardData}
+        holeScores={holeScores}
+        updateHoleScore={updateHoleScore}
+        saveScorecard={saveScorecard}
+        exitScorecard={exitScorecard}
+      />
     );
   }
 
+  // Otherwise, render the main app layout with tabs
   return (
     <div className="min-h-screen bg-gradient-to-br from-green-50 to-blue-50">
       <div className="bg-white shadow-sm border-b">
