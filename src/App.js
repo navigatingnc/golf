@@ -39,6 +39,12 @@ const GolfApp = () => {
 
   const [activeScorecard, setActiveScorecard] = useState(null);
   const [holeScores, setHoleScores] = useState(Array(18).fill(''));
+  const [newMember, setNewMember] = useState({
+    name: '',
+    email: '',
+    handicap: ''
+  });
+  const [editingMember, setEditingMember] = useState(null);
 
   const getMemberName = (id) => members.find(m => m.id === id)?.name || '';
   const getCourseName = (id) => courses.find(c => c.id === id)?.name || '';
@@ -66,6 +72,65 @@ const GolfApp = () => {
       };
       setRounds([...rounds, round]);
       setNewRound({ memberId: '', courseId: '', date: '', time: '', score: '', notes: '' });
+    }
+  };
+
+  const addMember = () => {
+    if (newMember.name && newMember.email) {
+      const member = {
+        id: Math.max(...members.map(m => m.id), 0) + 1,
+        name: newMember.name,
+        email: newMember.email,
+        handicap: parseFloat(newMember.handicap) || 0,
+        rounds: 0
+      };
+      setMembers([...members, member]);
+      setNewMember({ name: '', email: '', handicap: '' });
+    }
+  };
+
+  const startEditMember = (member) => {
+    setEditingMember(member);
+    setNewMember({
+      name: member.name,
+      email: member.email,
+      handicap: member.handicap.toString()
+    });
+  };
+
+  const saveEditMember = () => {
+    if (editingMember && newMember.name && newMember.email) {
+      const updatedMembers = members.map(member =>
+        member.id === editingMember.id
+          ? {
+              ...member,
+              name: newMember.name,
+              email: newMember.email,
+              handicap: parseFloat(newMember.handicap) || 0
+            }
+          : member
+      );
+      setMembers(updatedMembers);
+      setEditingMember(null);
+      setNewMember({ name: '', email: '', handicap: '' });
+    }
+  };
+
+  const cancelEditMember = () => {
+    setEditingMember(null);
+    setNewMember({ name: '', email: '', handicap: '' });
+  };
+
+  const deleteMember = (memberId) => {
+    // Check if member has any rounds
+    const hasRounds = rounds.some(round => round.memberId === memberId);
+    if (hasRounds) {
+      alert('Cannot delete member with existing rounds. Please remove their rounds first.');
+      return;
+    }
+    
+    if (window.confirm('Are you sure you want to delete this member?')) {
+      setMembers(members.filter(member => member.id !== memberId));
     }
   };
 
