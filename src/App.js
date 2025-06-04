@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Calendar, Users, Trophy, Target, Clock } from 'lucide-react'; // Removed unused icons, Plus is in Rounds
+import { Calendar, Users, Trophy, Target, Clock, Plus } from 'lucide-react'; // Added Plus import
 
 // Import Components
 import Dashboard from './components/Dashboard.js';
@@ -107,6 +107,29 @@ const GolfApp = () => {
       activeScorecardData = { round: roundDetails, course: courseDetails };
     }
   }
+
+  // Generate leaderboard data
+  const generateLeaderboard = () => {
+    return members.map(member => {
+      const memberRounds = rounds.filter(r => r.memberId === member.id && r.status === 'completed');
+      const totalRounds = memberRounds.length;
+      const avgScore = totalRounds > 0 ? 
+        Math.round((memberRounds.reduce((sum, round) => sum + round.score, 0) / totalRounds) * 10) / 10 : 0;
+      const bestScore = totalRounds > 0 ? Math.min(...memberRounds.map(r => r.score)) : 0;
+      
+      return {
+        ...member,
+        totalRounds,
+        avgScore,
+        bestScore
+      };
+    }).sort((a, b) => {
+      if (a.avgScore === 0 && b.avgScore === 0) return 0;
+      if (a.avgScore === 0) return 1;
+      if (b.avgScore === 0) return -1;
+      return a.avgScore - b.avgScore;
+    });
+  };
 
   // If activeScorecard is set and we have the data, render Scorecard component
   if (activeScorecard && activeScorecardData) {
@@ -367,4 +390,93 @@ const GolfApp = () => {
               <table className="w-full">
                 <thead className="bg-gray-50">
                   <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Name</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Email</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Handicap</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Total Rounds</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-200">
+                  {members.map(member => (
+                    <tr key={member.id} className="hover:bg-gray-50">
+                      <td className="px-6 py-4 font-medium">{member.name}</td>
+                      <td className="px-6 py-4 text-gray-600">{member.email}</td>
+                      <td className="px-6 py-4">
+                        <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-sm font-semibold">
+                          {member.handicap}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4">{member.rounds}</td>
+                      <td className="px-6 py-4">
+                        <button className="text-green-600 hover:text-green-800 text-sm font-medium">
+                          Edit
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+
+        {activeTab === 'leaderboard' && (
+          <div className="bg-white rounded-lg shadow-sm border">
+            <div className="p-6 border-b">
+              <h2 className="text-xl font-semibold flex items-center space-x-2">
+                <Trophy className="text-yellow-600" size={24} />
+                <span>Club Leaderboard</span>
+              </h2>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Rank</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Player</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Handicap</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Avg Score</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Best Score</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Rounds Played</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-200">
+                  {generateLeaderboard().map((member, index) => (
+                    <tr key={member.id} className="hover:bg-gray-50">
+                      <td className="px-6 py-4">
+                        <span className={`flex items-center justify-center w-8 h-8 rounded-full text-sm font-bold ${
+                          index === 0 ? 'bg-yellow-100 text-yellow-800' :
+                          index === 1 ? 'bg-gray-100 text-gray-800' :
+                          index === 2 ? 'bg-orange-100 text-orange-800' :
+                          'bg-blue-50 text-blue-800'
+                        }`}>
+                          {index + 1}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 font-medium">{member.name}</td>
+                      <td className="px-6 py-4">
+                        <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-sm font-semibold">
+                          {member.handicap}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 font-semibold">
+                        {member.avgScore > 0 ? member.avgScore : '-'}
+                      </td>
+                      <td className="px-6 py-4 font-semibold text-green-600">
+                        {member.bestScore > 0 ? member.bestScore : '-'}
+                      </td>
+                      <td className="px-6 py-4">{member.totalRounds}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+export default GolfApp;
