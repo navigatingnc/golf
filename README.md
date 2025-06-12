@@ -15,9 +15,9 @@ A comprehensive members-only golf application for tracking scorecards, handicaps
 
 ## Screenshots
 
-![Dashboard](docs/dashboard-screenshot.png)
-![Scorecard](docs/scorecard-screenshot.png)
-![Leaderboard](docs/leaderboard-screenshot.png)
+![Dashboard](docs/screenshots/dashboard-screenshot.png)
+![Scorecard](docs/screenshots/scorecard-screenshot.png)
+![Leaderboard](docs/screenshots/leaderboard-screenshot.png)
 
 ## Quick Start
 
