@@ -1,14 +1,23 @@
 import React, { useState, useEffect } from 'react';
-import { Calendar, Users, Trophy, Target, Clock, Plus } from 'lucide-react'; // Added Plus import
+import { Calendar, Users, Trophy, Target, Clock, Plus, LogOut } from 'lucide-react'; // Added Plus, LogOut
 
-// Import Components
-import Dashboard from './components/Dashboard.js';
+// Import Auth
+import { AuthProvider, useAuth } from './contexts/AuthContext.js';
+import LoginPage from './components/LoginPage.js';
+import RegisterPage from './components/RegisterPage.js';
+
+// Import Original Components
+import Dashboard from './components/Dashboard.js'; // Though Dashboard itself is not directly used here, its logic is in AppCore
 import Scorecard from './components/Scorecard.js';
-import Members from './components/Members.js';
-import Rounds from './components/Rounds.js';
-import Leaderboard from './components/Leaderboard.js';
+import Members from './components/Members.js'; // Similarly for Members
+import Rounds from './components/Rounds.js';   // Similarly for Rounds
+import Leaderboard from './components/Leaderboard.js'; // Similarly for Leaderboard
 
-const GolfApp = () => {
+// This component holds the main application logic and UI when logged in
+const AppCore = () => {
+  const { currentUser, logout } = useAuth(); // Get user and logout
+
+  // All existing state from the original GolfApp:
   const [activeTab, setActiveTab] = useState('dashboard');
   const [members, setMembers] = useState([
     { id: 1, name: 'John Smith', email: 'john@email.com', handicap: 12.4, rounds: 24 },
@@ -34,7 +43,7 @@ const GolfApp = () => {
     date: '',
     time: '',
     score: '',
-    notes: '' // notes was in the original newRound state, keeping it
+    notes: ''
   });
 
   const [activeScorecard, setActiveScorecard] = useState(null);
@@ -49,6 +58,7 @@ const GolfApp = () => {
   const getMemberName = (id) => members.find(m => m.id === id)?.name || '';
   const getCourseName = (id) => courses.find(c => c.id === id)?.name || '';
 
+  // calculateHandicap, addRound, addMember, etc. all remain here
   const calculateHandicap = (scores, courseRating = 72, courseSlope = 113) => {
     if (scores.length < 5) return 0;
     const differentials = scores.map(score => 
@@ -122,13 +132,11 @@ const GolfApp = () => {
   };
 
   const deleteMember = (memberId) => {
-    // Check if member has any rounds
     const hasRounds = rounds.some(round => round.memberId === memberId);
     if (hasRounds) {
       alert('Cannot delete member with existing rounds. Please remove their rounds first.');
       return;
     }
-    
     if (window.confirm('Are you sure you want to delete this member?')) {
       setMembers(members.filter(member => member.id !== memberId));
     }
@@ -162,18 +170,15 @@ const GolfApp = () => {
   const upcomingRounds = rounds.filter(r => r.status === 'scheduled').slice(0, 3);
   const recentRounds = rounds.filter(r => r.status === 'completed').slice(-3);
 
-  // Prepare data for Scorecard component
   let activeScorecardData = null;
   if (activeScorecard) {
     const roundDetails = rounds.find(r => r.id === activeScorecard);
-    // Ensure roundDetails is found before trying to access its courseId
     if (roundDetails) {
       const courseDetails = courses.find(c => c.id === roundDetails.courseId);
       activeScorecardData = { round: roundDetails, course: courseDetails };
     }
   }
 
-  // Generate leaderboard data
   const generateLeaderboard = () => {
     return members.map(member => {
       const memberRounds = rounds.filter(r => r.memberId === member.id && r.status === 'completed');
@@ -196,7 +201,6 @@ const GolfApp = () => {
     });
   };
 
-  // If activeScorecard is set and we have the data, render Scorecard component
   if (activeScorecard && activeScorecardData) {
     return (
       <Scorecard
@@ -209,37 +213,50 @@ const GolfApp = () => {
     );
   }
 
-  // Otherwise, render the main app layout with tabs
   return (
     <div className="min-h-screen bg-gradient-to-br from-green-50 to-blue-50">
       <div className="bg-white shadow-sm border-b">
         <div className="max-w-6xl mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <h1 className="text-2xl font-bold text-green-800">⛳ Golf Club Manager</h1>
-            <div className="flex space-x-1">
-              {[
-                { id: 'dashboard', label: 'Dashboard', icon: Target },
-                { id: 'rounds', label: 'Rounds', icon: Calendar },
-                { id: 'members', label: 'Members', icon: Users },
-                { id: 'leaderboard', label: 'Leaderboard', icon: Trophy }
-              ].map(tab => {
-                const Icon = tab.icon;
-                return (
-                  <button
-                    key={tab.id}
-                    onClick={() => setActiveTab(tab.id)}
-                    className={`px-4 py-2 rounded-lg flex items-center space-x-2 transition-colors ${
-                      activeTab === tab.id 
-                        ? 'bg-green-100 text-green-800 font-semibold' 
-                        : 'text-gray-600 hover:bg-gray-100'
-                    }`}
-                  >
-                    <Icon size={18} />
-                    <span>{tab.label}</span>
-                  </button>
-                );
-              })}
+            <div className="flex items-center">
+              {currentUser && (
+                <span className="mr-4 text-sm text-gray-700">
+                  Welcome, <span className="font-semibold">{currentUser.username}</span>!
+                </span>
+              )}
+              <button
+                onClick={logout}
+                className="px-3 py-2 rounded-lg text-sm text-gray-600 hover:bg-red-100 hover:text-red-700 flex items-center space-x-2 transition-colors"
+              >
+                <LogOut size={16} />
+                <span>Logout</span>
+              </button>
             </div>
+          </div>
+          <div className="flex space-x-1 mt-4"> {/* Added mt-4 for spacing */}
+            {[
+              { id: 'dashboard', label: 'Dashboard', icon: Target },
+              { id: 'rounds', label: 'Rounds', icon: Calendar },
+              { id: 'members', label: 'Members', icon: Users },
+              { id: 'leaderboard', label: 'Leaderboard', icon: Trophy }
+            ].map(tab => {
+              const Icon = tab.icon;
+              return (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id)}
+                  className={`px-4 py-2 rounded-lg flex items-center space-x-2 transition-colors ${
+                    activeTab === tab.id
+                      ? 'bg-green-100 text-green-800 font-semibold'
+                      : 'text-gray-600 hover:bg-gray-100'
+                  }`}
+                >
+                  <Icon size={18} />
+                  <span>{tab.label}</span>
+                </button>
+              );
+            })}
           </div>
         </div>
       </div>
@@ -255,7 +272,6 @@ const GolfApp = () => {
                 </div>
                 <div className="text-3xl font-bold text-blue-600">{members.length}</div>
               </div>
-              
               <div className="bg-white p-6 rounded-lg shadow-sm border">
                 <div className="flex items-center space-x-3 mb-4">
                   <Calendar className="text-green-600" size={24} />
@@ -265,7 +281,6 @@ const GolfApp = () => {
                   {rounds.filter(r => r.status === 'scheduled').length}
                 </div>
               </div>
-              
               <div className="bg-white p-6 rounded-lg shadow-sm border">
                 <div className="flex items-center space-x-3 mb-4">
                   <Trophy className="text-yellow-600" size={24} />
@@ -276,7 +291,6 @@ const GolfApp = () => {
                 </div>
               </div>
             </div>
-
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               <div className="bg-white p-6 rounded-lg shadow-sm border">
                 <h3 className="text-lg font-semibold mb-4 flex items-center space-x-2">
@@ -299,9 +313,9 @@ const GolfApp = () => {
                       </button>
                     </div>
                   ))}
+                  {upcomingRounds.length === 0 && <p className="text-sm text-gray-500">No upcoming rounds scheduled.</p>}
                 </div>
               </div>
-
               <div className="bg-white p-6 rounded-lg shadow-sm border">
                 <h3 className="text-lg font-semibold mb-4 flex items-center space-x-2">
                   <Trophy className="text-green-600" size={20} />
@@ -324,6 +338,7 @@ const GolfApp = () => {
                       </div>
                     </div>
                   ))}
+                  {recentRounds.length === 0 && <p className="text-sm text-gray-500">No recent rounds completed.</p>}
                 </div>
               </div>
             </div>
@@ -345,7 +360,6 @@ const GolfApp = () => {
                     <option key={member.id} value={member.id}>{member.name}</option>
                   ))}
                 </select>
-                
                 <select 
                   value={newRound.courseId} 
                   onChange={(e) => setNewRound({...newRound, courseId: e.target.value})}
@@ -356,21 +370,18 @@ const GolfApp = () => {
                     <option key={course.id} value={course.id}>{course.name}</option>
                   ))}
                 </select>
-                
                 <input 
                   type="date" 
                   value={newRound.date}
                   onChange={(e) => setNewRound({...newRound, date: e.target.value})}
                   className="p-3 border rounded-lg focus:ring-2 focus:ring-green-500 focus:outline-none"
                 />
-                
                 <input 
                   type="time" 
                   value={newRound.time}
                   onChange={(e) => setNewRound({...newRound, time: e.target.value})}
                   className="p-3 border rounded-lg focus:ring-2 focus:ring-green-500 focus:outline-none"
                 />
-                
                 <input 
                   type="number" 
                   placeholder="Score (if completed)"
@@ -378,7 +389,6 @@ const GolfApp = () => {
                   onChange={(e) => setNewRound({...newRound, score: e.target.value})}
                   className="p-3 border rounded-lg focus:ring-2 focus:ring-green-500 focus:outline-none"
                 />
-                
                 <button 
                   onClick={addRound}
                   className="p-3 bg-green-600 text-white rounded-lg hover:bg-green-700 flex items-center justify-center space-x-2"
@@ -388,7 +398,6 @@ const GolfApp = () => {
                 </button>
               </div>
             </div>
-
             <div className="bg-white rounded-lg shadow-sm border overflow-hidden">
               <div className="p-6 border-b">
                 <h2 className="text-xl font-semibold">All Rounds</h2>
@@ -447,101 +456,54 @@ const GolfApp = () => {
         )}
 
         {activeTab === 'members' && (
-          <div className="bg-white rounded-lg shadow-sm border">
-            <div className="p-6 border-b">
-              <h2 className="text-xl font-semibold">Club Members</h2>
-            </div>
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Name</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Email</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Handicap</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Total Rounds</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-200">
-                  {members.map(member => (
-                    <tr key={member.id} className="hover:bg-gray-50">
-                      <td className="px-6 py-4 font-medium">{member.name}</td>
-                      <td className="px-6 py-4 text-gray-600">{member.email}</td>
-                      <td className="px-6 py-4">
-                        <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-sm font-semibold">
-                          {member.handicap}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4">{member.rounds}</td>
-                      <td className="px-6 py-4">
-                        <button className="text-green-600 hover:text-green-800 text-sm font-medium">
-                          Edit
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
+          <Members
+            members={members}
+            newMember={newMember}
+            setNewMember={setNewMember}
+            addMember={addMember}
+            editingMember={editingMember}
+            startEditMember={startEditMember}
+            saveEditMember={saveEditMember}
+            cancelEditMember={cancelEditMember}
+            deleteMember={deleteMember}
+          />
         )}
 
         {activeTab === 'leaderboard' && (
-          <div className="bg-white rounded-lg shadow-sm border">
-            <div className="p-6 border-b">
-              <h2 className="text-xl font-semibold flex items-center space-x-2">
-                <Trophy className="text-yellow-600" size={24} />
-                <span>Club Leaderboard</span>
-              </h2>
-            </div>
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Rank</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Player</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Handicap</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Avg Score</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Best Score</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Rounds Played</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-200">
-                  {generateLeaderboard().map((member, index) => (
-                    <tr key={member.id} className="hover:bg-gray-50">
-                      <td className="px-6 py-4">
-                        <span className={`flex items-center justify-center w-8 h-8 rounded-full text-sm font-bold ${
-                          index === 0 ? 'bg-yellow-100 text-yellow-800' :
-                          index === 1 ? 'bg-gray-100 text-gray-800' :
-                          index === 2 ? 'bg-orange-100 text-orange-800' :
-                          'bg-blue-50 text-blue-800'
-                        }`}>
-                          {index + 1}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 font-medium">{member.name}</td>
-                      <td className="px-6 py-4">
-                        <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-sm font-semibold">
-                          {member.handicap}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 font-semibold">
-                        {member.avgScore > 0 ? member.avgScore : '-'}
-                      </td>
-                      <td className="px-6 py-4 font-semibold text-green-600">
-                        {member.bestScore > 0 ? member.bestScore : '-'}
-                      </td>
-                      <td className="px-6 py-4">{member.totalRounds}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
+          <Leaderboard
+            leaderboardData={generateLeaderboard()}
+          />
         )}
       </div>
     </div>
   );
 };
 
-export default GolfApp;
+// This component handles the auth state and page toggling
+const AppWithAuth = () => {
+  const { currentUser } = useAuth();
+  const [showRegisterPage, setShowRegisterPage] = useState(false);
+
+  const toggleRegisterPage = () => {
+    setShowRegisterPage(!showRegisterPage);
+  };
+
+  if (!currentUser) {
+    return showRegisterPage
+      ? <RegisterPage onTogglePage={toggleRegisterPage} />
+      : <LoginPage onTogglePage={toggleRegisterPage} />;
+  }
+
+  return <AppCore />; // Render the main app content
+};
+
+// The final export provides the AuthContext to the entire app
+const App = () => {
+  return (
+    <AuthProvider>
+      <AppWithAuth />
+    </AuthProvider>
+  );
+};
+
+export default App;
